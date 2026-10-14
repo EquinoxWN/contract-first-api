@@ -1,0 +1,519 @@
+openapi: 3.1.0
+info:
+  title: Orders API
+  version: 1.0.0
+  contact:
+    name: contract-first-api
+    url: https://github.com/EquinoxWN/contract-first-api
+  license:
+    name: MIT
+    identifier: MIT
+  description: |-
+    Customers and orders of a small online shop. Designed in TypeSpec first; the OpenAPI 3.1
+    document is generated from this file and checked against the house style guide.
+tags:
+  - name: Orders
+    description: Orders, their lines and their status.
+  - name: Customers
+    description: People who place orders.
+paths:
+  /customers:
+    get:
+      operationId: listCustomers
+      description: List customers, newest first.
+      parameters:
+        - $ref: '#/components/parameters/PageParameters.limit'
+        - $ref: '#/components/parameters/PageParameters.cursor'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerPage'
+        '400':
+          description: The request was malformed or failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Customers
+    post:
+      operationId: createCustomer
+      description: Create a customer.
+      parameters: []
+      responses:
+        '201':
+          description: A resource was created.
+          headers:
+            location:
+              required: true
+              description: URL of the new resource.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '400':
+          description: The request was malformed or failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: The request conflicts with the current state of the resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Customers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Customer'
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      description: Get one customer.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Customers
+  /customers/{customerId}/orders:
+    get:
+      operationId: listCustomerOrders
+      description: List the orders of one customer, newest first.
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceId'
+        - $ref: '#/components/parameters/PageParameters.limit'
+        - $ref: '#/components/parameters/PageParameters.cursor'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+        '400':
+          description: The request was malformed or failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Customers
+  /orders:
+    get:
+      operationId: listOrders
+      description: List orders, newest first, optionally filtered by status.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Only return orders in this status.
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          explode: false
+        - $ref: '#/components/parameters/PageParameters.limit'
+        - $ref: '#/components/parameters/PageParameters.cursor'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPage'
+        '400':
+          description: The request was malformed or failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Orders
+    post:
+      operationId: createOrder
+      description: Place an order. Retrying with the same idempotency key returns the first result.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Client-chosen key that makes retries safe.
+          schema:
+            type: string
+            maxLength: 64
+      responses:
+        '201':
+          description: A resource was created.
+          headers:
+            location:
+              required: true
+              description: URL of the new resource.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: The request was malformed or failed validation.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: The request conflicts with the current state of the resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      description: Get one order.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Orders
+  /orders/{orderId}/cancellation:
+    post:
+      operationId: cancelOrder
+      description: Cancel an order that has not shipped yet.
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ResourceId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '401':
+          description: No valid bearer token was sent.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: The resource does not exist.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: The request conflicts with the current state of the resource.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+      tags:
+        - Orders
+security:
+  - BearerAuth: []
+components:
+  parameters:
+    PageParameters.cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor copied from the `nextCursor` of the previous page.
+      schema:
+        type: string
+        maxLength: 512
+      explode: false
+    PageParameters.limit:
+      name: limit
+      in: query
+      required: false
+      description: Most items to return on one page.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
+      explode: false
+  schemas:
+    Customer:
+      type: object
+      required:
+        - id
+        - email
+        - displayName
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+          description: Server-assigned identifier, for example `cus_8f14e45fceea167a`.
+          readOnly: true
+        email:
+          type: string
+          maxLength: 254
+          format: email
+          description: Contact email address.
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Name printed on invoices.
+        createdAt:
+          type: string
+          format: date-time
+          description: When the customer was created.
+          readOnly: true
+      description: A customer who can place orders.
+    CustomerPage:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
+          maxItems: 100
+          description: Items on this page, at most `limit`.
+        nextCursor:
+          type: string
+          description: Cursor for the next page; absent on the last page.
+      description: One page of a list, with the cursor for the next page.
+    Money:
+      type: object
+      required:
+        - amountMinor
+        - currency
+      properties:
+        amountMinor:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Amount in minor units.
+        currency:
+          type: string
+          pattern: ^[A-Z]{3}$
+          description: ISO 4217 currency code.
+      description: An amount of money in the minor unit of its currency (for example cents).
+    Order:
+      type: object
+      required:
+        - id
+        - customerId
+        - status
+        - lines
+        - total
+        - createdAt
+      properties:
+        id:
+          $ref: '#/components/schemas/ResourceId'
+          description: Server-assigned identifier, for example `ord_c9f0f895fb98ab91`.
+          readOnly: true
+        customerId:
+          $ref: '#/components/schemas/ResourceId'
+          description: The customer who placed the order.
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+          description: Current status.
+          readOnly: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderLine'
+          minItems: 1
+          maxItems: 100
+          description: Ordered products.
+        total:
+          $ref: '#/components/schemas/Money'
+          description: Sum of all lines, computed by the server.
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          description: When the order was placed.
+          readOnly: true
+      description: An order placed by a customer.
+    OrderLine:
+      type: object
+      required:
+        - sku
+        - quantity
+        - unitPrice
+      properties:
+        sku:
+          type: string
+          pattern: ^[A-Z0-9-]{3,32}$
+          description: Stock-keeping unit of the product.
+        quantity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 1000
+          description: Number of units.
+        unitPrice:
+          $ref: '#/components/schemas/Money'
+          description: Price of one unit.
+      description: One product line of an order.
+    OrderPage:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+          maxItems: 100
+          description: Items on this page, at most `limit`.
+        nextCursor:
+          type: string
+          description: Cursor for the next page; absent on the last page.
+      description: One page of a list, with the cursor for the next page.
+    OrderStatus:
+      type: string
+      enum:
+        - pending
+        - paid
+        - shipped
+        - cancelled
+      description: Where an order is in its lifecycle.
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI reference that identifies the problem type.
+        title:
+          type: string
+          description: Short, human-readable summary of the problem type.
+        status:
+          type: integer
+          format: int32
+          minimum: 400
+          maximum: 599
+          description: HTTP status code of this occurrence.
+        detail:
+          type: string
+          description: Explanation specific to this occurrence.
+        instance:
+          type: string
+          description: URI reference that identifies this occurrence.
+      description: Problem details for HTTP APIs (RFC 9457).
+    ResourceId:
+      type: string
+      pattern: ^[a-z]{2,8}_[A-Za-z0-9]{16,32}$
+      description: 'Server-assigned identifier: a type prefix, an underscore and 16 to 32 letters or digits.'
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: Bearer
+servers:
+  - url: https://api.example.com/v1
+    description: Example deployment (placeholder host)
+    variables: {}

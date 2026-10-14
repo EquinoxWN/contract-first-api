@@ -1,0 +1,4 @@
+# Text files use LF on every platform, so the generated OpenAPI file compares byte for byte.
+* text=auto eol=lf
+*.jpg binary
+*.png binary

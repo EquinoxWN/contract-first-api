@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Least privilege: the workflow can read the code and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Belt and braces next to package.json scarfSettings: no install-time analytics.
+  SCARF_ANALYTICS: "false"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Every action is pinned to a full commit SHA; Dependabot proposes updates.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+      # setup, lint, check (spec current + style guide, as annotations), test.
+      - name: make ci
+        shell: bash
+        run: make ci FORMAT=github 2>&1 | tee make-ci.log
+      - name: Failing output as an annotation (logs need signing in)
+        if: failure()
+        run: tail -n 60 make-ci.log | python3 -c "import sys; print('::error title=make ci (last lines)::' + sys.stdin.read().replace('%', '%25').replace('\r', '').replace('\n', '%0A'))"
+      - name: Baseline and seeded-violation detection (job summary)
+        shell: bash
+        run: |
+          node dist/src/measure.js --github | tee measure.txt
+          grep -v '^::' measure.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Known-vulnerability audit
+        run: make audit

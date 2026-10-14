@@ -1,0 +1,18 @@
+# Compiles spec/main.tsp to openapi/openapi.yaml (OpenAPI 3.1). Run `make spec`; CI fails if the
+# committed file differs from a fresh compile (`make check`).
+emit:
+  - "@typespec/openapi3"
+warn-as-error: true
+linter:
+  extends:
+    - "@typespec/http/all"
+options:
+  "@typespec/openapi3":
+    emitter-output-dir: "{project-root}/openapi"
+    output-file: "openapi.yaml"
+    openapi-versions:
+      - "3.1.0"
+    # Every operation must name its operationId; the default (Interface_op) breaks the style guide.
+    operation-id-strategy: explicit-only
+    omit-unreachable-types: true
+    new-line: lf

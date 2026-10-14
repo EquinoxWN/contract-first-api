@@ -1,0 +1,51 @@
+{
+  "name": "contract-first-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stops an API change breaking every client: design the spec first, block breaking changes in CI, generate the SDKs and docs.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "bin": {
+    "contract": "dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.json",
+    "lint": "tsc -p tsconfig.json --noEmit && tsp format --check \"spec/**/*.tsp\"",
+    "spec": "npm run build && node dist/src/cli.js build",
+    "check": "npm run build && node dist/src/cli.js check",
+    "test": "npm run build && node --test --test-concurrency=1 --test-timeout=120000 \"dist/test/*.test.js\"",
+    "measure": "npm run build && node dist/src/measure.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scarfSettings": {
+    "enabled": false
+  },
+  "dependencies": {
+    "@stoplight/spectral-core": "1.24.0",
+    "@stoplight/spectral-formats": "1.9.0",
+    "@stoplight/spectral-functions": "1.11.0",
+    "@stoplight/spectral-parsers": "1.0.5",
+    "@stoplight/spectral-ref-resolver": "1.0.5",
+    "@stoplight/spectral-rulesets": "1.23.0",
+    "@typespec/compiler": "1.16.0",
+    "@typespec/http": "1.16.0",
+    "@typespec/openapi": "1.16.0",
+    "@typespec/openapi3": "1.16.0",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.1",
+    "typescript": "7.0.2"
+  },
+  "overrides": {
+    "undici": "7.30.0"
+  }
+}
