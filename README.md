@@ -31,7 +31,7 @@ dependency audit is clean:
 
 ```mermaid
 flowchart LR
-  T["spec/main.tsp<br/>+ spec/lib/style.tsp<br/>(PageParameters, Page&lt;T&gt;,<br/>ProblemDetails)"] --> C["TypeSpec 1.16<br/>warnings are errors<br/>@typespec/http linter"]
+  T["spec/main.tsp<br/>+ spec/lib/style.tsp<br/>(PageParameters, Page&lt;T&gt;,<br/>ProblemDetails)"] --> C["TypeSpec 1.17<br/>warnings are errors<br/>@typespec/http linter"]
   C --> O["openapi/openapi.yaml<br/>OpenAPI 3.1.0 (committed)"]
   C -->|contract check| D{"same as<br/>committed file?"}
   D -->|no| F1["fail: out of date"]
@@ -78,7 +78,7 @@ In M1 the example is an Orders API (customers and orders of a small shop, 8 oper
 
 | Area | In M1 | Planned |
 |---|---|---|
-| Spec | TypeSpec 1.16 (`@typespec/http`, `@typespec/openapi`, `@typespec/openapi3`) compiled to OpenAPI 3.1.0 | Versioning with `@typespec/versioning` |
+| Spec | TypeSpec 1.17 (`@typespec/http`, `@typespec/openapi`, `@typespec/openapi3`) compiled to OpenAPI 3.1.0 | Versioning with `@typespec/versioning` |
 | Checks | Spectral 1.24 as a library: `spectral:oas` recommended rules plus 13 house rules in TypeScript; drift check of the committed spec | oasdiff breaking-change gate (M2), contract tests (M3) |
 | Outputs | Committed `openapi/openapi.yaml`; findings as text, JSON or GitHub annotations | TypeScript and Python SDKs, Prism mock server, docs site (M2) |
 | Lifecycle | - | Deprecation and Sunset headers (M3) |

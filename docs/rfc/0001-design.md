@@ -65,7 +65,7 @@ who want one style across many APIs, and client teams who consume them.
 ![architecture](../architecture.png)
 
 ```
-spec/main.tsp + spec/lib/style.tsp ──TypeSpec 1.16 (warnings are errors, @typespec/http linter)──►
+spec/main.tsp + spec/lib/style.tsp ──TypeSpec 1.17 (warnings are errors, @typespec/http linter)──►
    in-memory OpenAPI 3.1 ──► contract build: write openapi/openapi.yaml
                          └─► contract check: byte-compare with the committed file (stale = fail)
 openapi/openapi.yaml ──► load (5 MiB cap, strict UTF-8, one YAML document, unique keys,
