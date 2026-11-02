@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { performance } from "node:perf_hooks";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { writeFile } from "node:fs/promises";
@@ -67,9 +68,9 @@ describe("reading spec files safely", () => {
       const next = String.fromCharCode(97 + i);
       lines.push(`${next}: &${next} [${Array(10).fill(`*${prev}`).join(",")}]`);
     }
-    const started = Date.now();
+    const started = performance.now();
     assert.throws(() => validateSpecText(lines.join("\n"), "bomb.yaml"), (e: unknown) => e instanceof SpecError && /alias/i.test(e.message));
-    assert.ok(Date.now() - started < 2000, "rejected quickly");
+    assert.ok(performance.now() - started < 2000, "rejected quickly");
   });
 
   test("never follows external $refs: no HTTP request and no file read", async () => {

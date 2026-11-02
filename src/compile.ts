@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { compile, formatDiagnostic, NodeHost, resolveCompilerOptions, type CompilerHost } from "@typespec/compiler";
 
@@ -43,23 +43,34 @@ export async function compileSpec(root: string): Promise<CompileResult> {
   return { files, diagnostics };
 }
 
-/** Write emitted files under root, creating folders as needed. */
+/** Write emitted files under root atomically, creating folders as needed. */
 export async function writeEmitted(root: string, files: Map<string, string>): Promise<string[]> {
   const written: string[] = [];
   for (const [rel, content] of files) {
     const target = resolve(root, insideRoot(root, rel));
     await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, content, "utf8");
+    // Write a sibling temp file, then rename: a crash never leaves a half-written spec.
+    const temp = `${target}.${process.pid}.tmp`;
+    try {
+      await writeFile(temp, content, "utf8");
+      await rename(temp, target);
+    } catch (error) {
+      await rm(temp, { force: true });
+      throw error;
+    }
     written.push(rel);
   }
   return written;
 }
 
-/** Emitted files whose committed copy is missing or different. */
+/** Emitted files whose committed copy is missing or different; other read errors are thrown. */
 export async function staleFiles(root: string, files: Map<string, string>): Promise<string[]> {
   const stale: string[] = [];
   for (const [rel, content] of files) {
-    const committed = await readFile(resolve(root, insideRoot(root, rel)), "utf8").catch(() => undefined);
+    const committed = await readFile(resolve(root, insideRoot(root, rel)), "utf8").catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+      throw error;
+    });
     if (committed?.replaceAll("\r\n", "\n") !== content.replaceAll("\r\n", "\n")) stale.push(rel);
   }
   return stale;

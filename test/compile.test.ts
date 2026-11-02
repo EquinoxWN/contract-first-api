@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import { parse } from "yaml";
-import { compileSpec, insideRoot, staleFiles } from "../src/compile.js";
+import { compileSpec, insideRoot, staleFiles, writeEmitted } from "../src/compile.js";
 import { CAMEL_CASE } from "../src/functions.js";
 import { createLinter, lintText } from "../src/lint.js";
 import { STYLE_GUIDE } from "../src/ruleset.js";
-import { ROOT, specText } from "./helpers.js";
+import { ROOT, scratch, specText } from "./helpers.js";
 
 type Doc = { openapi: string; paths: Record<string, Record<string, { operationId?: string }>> };
 
@@ -31,6 +32,31 @@ describe("TypeSpec to OpenAPI 3.1", () => {
     changed.set("openapi/openapi.yaml", `${files.get("openapi/openapi.yaml") ?? ""}# edited\n`);
     changed.set("openapi/extra.yaml", "openapi: 3.1.0\n");
     assert.deepEqual(await staleFiles(ROOT, changed), ["openapi/openapi.yaml", "openapi/extra.yaml"]);
+  });
+
+  test("a committed path that cannot be read (a folder) is an error, not silently stale", async () => {
+    const { dir, cleanup } = await scratch("stale");
+    try {
+      await mkdir(join(dir, "openapi", "openapi.yaml"), { recursive: true });
+      await assert.rejects(staleFiles(dir, new Map([["openapi/openapi.yaml", "x"]])), { code: "EISDIR" });
+    } finally {
+      await cleanup();
+    }
+  });
+
+  test("writing the emitted files twice gives the same result and leaves no temp files", async () => {
+    const { dir, cleanup } = await scratch("emit");
+    try {
+      const files = new Map([["openapi/openapi.yaml", "openapi: 3.1.0\n"]]);
+      assert.deepEqual(await writeEmitted(dir, files), ["openapi/openapi.yaml"]);
+      files.set("openapi/openapi.yaml", "openapi: 3.1.1\n");
+      assert.deepEqual(await writeEmitted(dir, files), ["openapi/openapi.yaml"]);
+      assert.equal(await readFile(join(dir, "openapi", "openapi.yaml"), "utf8"), "openapi: 3.1.1\n");
+      assert.deepEqual(await readdir(join(dir, "openapi")), ["openapi.yaml"]);
+      assert.deepEqual(await staleFiles(dir, files), []);
+    } finally {
+      await cleanup();
+    }
   });
 
   test("every operation has an explicit camelCase operationId and the expected routes", async () => {

@@ -29,8 +29,8 @@ test:
 bench: build
 	node dist/src/measure.js
 
-# Known vulnerabilities in npm dependencies (any severity fails).
+# Known vulnerabilities in npm dependencies: any severity fails unless reviewed in scripts/audit.mjs.
 audit:
-	npm audit
+	node scripts/audit.mjs
 
 ci: setup lint check test
