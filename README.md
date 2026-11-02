@@ -15,7 +15,7 @@ first draft of the same API, written with TypeSpec defaults, fails with 46 error
 
 ![contract check on the spec, and the first draft failing the style guide](docs/proof/style-gate.jpg)
 
-`npm test` runs 37 tests (unit, randomized, seeded-violation, CLI and end-to-end), and the
+`npm test` runs 43 tests (unit, randomized, seeded-violation, CLI and end-to-end), and the
 dependency audit is clean:
 
 ![npm test and npm audit output](docs/proof/tests.jpg)
@@ -96,8 +96,8 @@ in [`openapi/`](openapi), the compiler wrapper, ruleset and CLI in [`src/`](src)
 make setup   # npm ci (exact versions from package-lock.json)
 make lint    # strict tsc and tsp format --check
 make check   # the committed OpenAPI file matches spec/ and passes all 70 rules
-make test    # 37 tests
-make audit   # npm audit
+make test    # 43 tests
+make audit   # npm audit (reviewed exceptions in scripts/audit.mjs)
 make bench   # first-draft baseline, timing, seeded-violation detection
 ```
 
@@ -116,24 +116,25 @@ build, 2 usage or input error.
 ## Tests and results
 
 Full commands, every test name and the DMAIC analysis: [docs/results/m1.md](docs/results/m1.md).
+Quality check against the 10 engineering rules, with the mutation table: [docs/quality/2026-11-01.md](docs/quality/2026-11-01.md).
 
 | Test file | Tests | What it proves |
 |---|---|---|
 | `functions.test.ts` | 7 | Naming patterns and path messages are exact; randomized: 2,000 seeded paths agree with an independent reference |
-| `ruleset.test.ts` | 9 | Committed spec has zero findings; all 70 rules load; each house rule is documented; edge cases (`4XX`, nullable cursor, item `GET`s, `limit` bounds, missing error content); 14 seeded violation kinds × 3 seeds caught |
+| `ruleset.test.ts` | 13 | Committed spec has zero findings; all 70 rules load; each house rule is documented; edge cases (`4XX`, nullable cursor, item `GET`s, inclusive `limit` bounds, `items` required, `status` required, 5xx-only operations, missing error content); 14 seeded violation kinds × 3 seeds caught |
 | `load.test.ts` | 7 | Size cap, strict UTF-8, duplicate keys, multi-document and non-OpenAPI input refused; alias bomb refused in under 2 s; external `$ref`s make 0 HTTP requests and read no files |
-| `compile.test.ts` | 6 | TypeSpec compiles with no diagnostics to OpenAPI 3.1.0; committed file equals a fresh compile; stale files detected; 8 explicit camelCase operationIds; first draft fails with 46 errors; output stays inside the project |
+| `compile.test.ts` | 8 | TypeSpec compiles with no diagnostics to OpenAPI 3.1.0; committed file equals a fresh compile; stale files detected; unreadable committed path is an error; repeated writes are atomic and idempotent; 8 explicit camelCase operationIds; first draft fails with 46 errors; output stays inside the project |
 | `cli.test.ts` | 6 | Exit codes 0/1/2, text and JSON output, `--fail-on`, escaped GitHub annotations, nine usage errors |
 | `e2e.test.ts` | 2 | Separate processes: build, check, a TypeSpec edit that breaks style and goes stale, the fix; a TypeSpec type error fails the build |
 
 | Result | Value |
 |---|---|
-| Tests (`npm test`) | **37 passed**, 0 failed (21.8 s) |
+| Tests (`npm test`) | **43 passed**, 0 failed (57-170 s while other jobs shared the machine; 37 tests took 21.8 s idle) |
 | Committed spec | OpenAPI 3.1.0, 8 operations, 0 errors and 0 warnings from 70 rules |
 | First draft (TypeSpec defaults) | 46 errors, 19 warnings: naming 13, pagination 17, error format 16 |
 | Seeded violations caught | 140/140 (14 kinds × 10 seeds) |
 | Compile / lint time | 107 ms / 55 ms median of 5 (i7-13700H) |
-| Lint / audit | strict `tsc` and `tsp format` clean; `npm audit`: 0 vulnerabilities |
+| Lint / audit | strict `tsc` and `tsp format` clean; `npm audit`: 0 unaccepted advisories (1 reviewed: GHSA-g3hv-75wg-m249 in minimatch 3.1.5, see `scripts/audit.mjs`) |
 | CI only | GitHub annotations and the job summary from the same commands |
 
 ### Test map
@@ -141,9 +142,9 @@ Full commands, every test name and the DMAIC analysis: [docs/results/m1.md](docs
 ```mermaid
 flowchart TB
   FN["functions.test (7)<br/>patterns, randomized paths"] --> F["functions.ts"]
-  RS["ruleset.test (9)<br/>seeded violations"] --> R["ruleset.ts + Spectral"]
+  RS["ruleset.test (13)<br/>seeded violations"] --> R["ruleset.ts + Spectral"]
   LD["load.test (7)<br/>size, UTF-8, alias bomb, $ref"] --> L["load.ts, lint.ts"]
-  CP["compile.test (6)<br/>3.1.0, drift, draft baseline"] --> C["compile.ts + TypeSpec"]
+  CP["compile.test (8)<br/>3.1.0, drift, draft baseline"] --> C["compile.ts + TypeSpec"]
   CL["cli.test (6)"] --> CLI["cli.ts, report.ts"]
   E2E["e2e.test (2)<br/>separate processes"] --> CLI
   R --> F
@@ -201,7 +202,7 @@ The server URL in the spec (`api.example.com`) is a placeholder.
 
 - Every GitHub Action is pinned to a commit SHA; workflows run read-only, without persisted credentials.
 - Dependabot update pull requests are paused (`open-pull-requests-limit: 0`) so the repository keeps a single `main` branch; dependencies are updated by hand and checked by the CI audit (TypeSpec and Spectral packages grouped).
-- Dependencies are exact versions with a committed lock file; install scripts are disabled; `npm audit` runs in CI.
+- Dependencies are exact versions with a committed lock file; install scripts are disabled; `npm audit` runs in CI and fails on any advisory not reviewed in `scripts/audit.mjs`.
 - The linter bounds its input (5 MiB, strict UTF-8, 100 aliases) and never follows external `$ref`s.
 - Report vulnerabilities privately: see [SECURITY.md](SECURITY.md). To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

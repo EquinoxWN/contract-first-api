@@ -126,6 +126,45 @@ describe("house ruleset", () => {
     ]);
   });
 
+  test("limit bounds are inclusive: minimum 0 is reported, minimum 1 and maximum 100 pass", async () => {
+    const doc = minimal() as { paths: { "/things": { get: { parameters: { schema: Record<string, unknown> }[] } } } };
+    const limitMessages = async (): Promise<string[]> =>
+      (await lintText(stringify(doc), "t.yaml", spectral)).filter((f) => f.code === "cfa-pagination-limit").map((f) => f.message);
+    doc.paths["/things"].get.parameters[0]!.schema = { type: "integer", minimum: 0, maximum: 50 };
+    assert.deepEqual(await limitMessages(), ['"limit" must declare a minimum of at least 1.']);
+    doc.paths["/things"].get.parameters[0]!.schema = { type: "integer", minimum: 1, maximum: 100 };
+    assert.deepEqual(await limitMessages(), []);
+  });
+
+  test("a page object whose items array is not required is reported", async () => {
+    const doc = minimal() as { paths: { "/things": { get: { responses: { "200": { content: Record<string, { schema: { required: string[] } }> } } } } } };
+    doc.paths["/things"].get.responses["200"].content["application/json"]!.schema.required = [];
+    const messages = (await lintText(stringify(doc), "t.yaml", spectral))
+      .filter((f) => f.code === "cfa-pagination-envelope")
+      .map((f) => f.message);
+    assert.deepEqual(messages, ['The page object must have a required "items" array.']);
+  });
+
+  test("a problem schema that declares status but does not require it is reported", async () => {
+    const doc = minimal() as { components: { schemas: { ProblemDetails: { required: string[] } } } };
+    doc.components.schemas.ProblemDetails.required = ["type", "title"];
+    const messages = (await lintText(stringify(doc), "t.yaml", spectral))
+      .filter((f) => f.code === "cfa-error-problem-schema")
+      .map((f) => f.message);
+    assert.ok(messages.length > 0, "missing requirement reported");
+    assert.ok(messages.every((m) => m.endsWith('Problem details must require "status".')), messages.join("; "));
+  });
+
+  test("an operation that documents only 5xx errors has no 4xx response", async () => {
+    const doc = minimal() as { paths: { "/things/{thingId}": { get: { responses: Record<string, unknown> } } } };
+    const responses = doc.paths["/things/{thingId}"].get.responses;
+    responses["500"] = responses["404"];
+    delete responses["404"];
+    const findings = (await lintText(stringify(doc), "t.yaml", spectral)).filter((f) => f.code === "cfa-error-response-defined");
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0]!.path, "paths./things/{thingId}.get.responses");
+  });
+
   test("an error response with no content at all is reported", async () => {
     const doc = minimal() as { paths: { "/things": { get: { responses: Record<string, unknown> } } } };
     doc.paths["/things"].get.responses["default"] = { description: "error" };
